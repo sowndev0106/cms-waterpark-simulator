@@ -1,0 +1,46 @@
+{
+  "kind": "collectionType",
+  "collectionName": "subcribers",
+  "info": {
+    "singularName": "subcriber",
+    "pluralName": "subcribers",
+    "displayName": "Subcriber"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "email": {
+      "type": "email",
+      "required": true,
+      "unique": true
+    },
+    "confirmationToken": {
+      "type": "string"
+    },
+    "confirmationAt": {
+      "type": "datetime"
+    },
+    "tokenExpiresAt": {
+      "type": "datetime"
+    },
+    "subscribedAt": {
+      "type": "datetime"
+    },
+    "unsubscribedAt": {
+      "type": "datetime"
+    },
+    "subscriptionState": {
+      "type": "enumeration",
+      "enum": [
+        "pending",
+        "subscribed",
+        "unsubscribed"
+      ]
+    },
+    "source": {
+      "type": "string"
+    }
+  }
+}
