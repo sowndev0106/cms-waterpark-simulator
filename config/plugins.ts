@@ -2,10 +2,8 @@ export default ({ env }) => ({
     // Email plugin configuration
     email: {
         config: {
-            provider: 'strapi-provider-email-strapi-cloud',
+            provider: '@strapi/provider-email-sendgrid',
             providerOptions: {
-                // Strapi Cloud sẽ tự động cấu hình các thông số này
-                // Bạn không cần thêm gì khác
             },
             settings: {
                 defaultFrom: env('EMAIL_FROM', 'noreply@waterpark-simulator.com'),
