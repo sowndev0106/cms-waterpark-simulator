@@ -1,16 +1,18 @@
 /**
- * subcriber controller - Clean version for Strapi 5
- * Alternative approach without type casting
+ * subscriber controller - Clean version for Strapi 5
+ * Updated to use Google reCAPTCHA instead of Cloudflare Turnstile
  */
 
 const { factories } = require('@strapi/strapi');
 
 // Type definitions
-interface TurnstileResponse {
+interface RecaptchaResponse {
     success: boolean;
-    'error-codes'?: string[];
     challenge_ts?: string;
     hostname?: string;
+    'error-codes'?: string[];
+    score?: number; // For reCAPTCHA v3
+    action?: string; // For reCAPTCHA v3
 }
 
 interface SubscriberData {
@@ -29,42 +31,68 @@ module.exports = factories.createCoreController('api::subcriber.subcriber', ({ s
      * API 1: Xử lý việc đăng ký mới.
      */
     async subscribe(ctx: any) {
-        const { email, 'cf-turnstile-response': captchaToken } = ctx.request.body;
+        const { email, recaptchaToken } = ctx.request.body;
 
         // --- 1. Validate Input ---
         if (!email) {
             return ctx.badRequest('Email is required.', { errorCode: 'EMAIL_REQUIRED' });
         }
-        if (!captchaToken) {
+        if (!recaptchaToken) {
             return ctx.badRequest('Captcha validation is required.', { errorCode: 'CAPTCHA_REQUIRED' });
         }
 
-        // --- 2. Verify Cloudflare Turnstile Captcha ---
-        const secretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+        // --- 2. Verify Google reCAPTCHA ---
+        const secretKey = process.env.GOOGLE_RECAPTCHA_SECRET_KEY;
         if (!secretKey) {
-            strapi.log.error('CLOUDFLARE_TURNSTILE_SECRET_KEY is not configured');
+            strapi.log.error('GOOGLE_RECAPTCHA_SECRET_KEY is not configured');
             return ctx.internalServerError('Server configuration error.');
         }
 
-        const formData = new FormData();
+        // Prepare form data for reCAPTCHA verification
+        const formData = new URLSearchParams();
         formData.append('secret', secretKey);
-        formData.append('response', captchaToken);
+        formData.append('response', recaptchaToken);
 
-        // try {
-        //     const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-        //         method: 'POST',
-        //         body: formData,
-        //     });
-        //     const outcome = await response.json() as TurnstileResponse;
+        // Optional: Add user's IP address for additional verification
+        const userIP = ctx.request.ip || ctx.request.socket.remoteAddress;
+        if (userIP) {
+            formData.append('remoteip', userIP);
+        }
 
-        //     if (!outcome.success) {
-        //         strapi.log.warn('Captcha verification failed', outcome['error-codes']);
-        //         return ctx.badRequest('Invalid captcha.', { errorCode: 'CAPTCHA_INVALID' });
-        //     }
-        // } catch (error) {
-        //     strapi.log.error('Error verifying captcha', error);
-        //     return ctx.internalServerError('Could not verify captcha.', { errorCode: 'CAPTCHA_VERIFY_ERROR' });
-        // }
+        try {
+            const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData.toString(),
+            });
+
+            const result = await response.json() as RecaptchaResponse;
+
+            if (!result.success) {
+                strapi.log.warn('reCAPTCHA verification failed', {
+                    errorCodes: result['error-codes'],
+                    score: result.score,
+                    action: result.action
+                });
+                return ctx.badRequest('Invalid captcha.', { errorCode: 'CAPTCHA_INVALID' });
+            }
+
+            // For reCAPTCHA v3: Check score threshold (optional)
+            const minScore = parseFloat(process.env.RECAPTCHA_MIN_SCORE || '0.5');
+            if (result.score !== undefined && result.score < minScore) {
+                strapi.log.warn('reCAPTCHA score too low', {
+                    score: result.score,
+                    threshold: minScore
+                });
+                return ctx.badRequest('Captcha verification failed.', { errorCode: 'CAPTCHA_SCORE_TOO_LOW' });
+            }
+
+        } catch (error) {
+            strapi.log.error('Error verifying reCAPTCHA', error);
+            return ctx.internalServerError('Could not verify captcha.', { errorCode: 'CAPTCHA_VERIFY_ERROR' });
+        }
 
         // --- 3. Process Subscription Logic ---
         try {
