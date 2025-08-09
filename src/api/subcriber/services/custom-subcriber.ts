@@ -64,15 +64,13 @@ export default ({ strapi }) => ({
                 name: 'users-permissions',
             });
 
-            let template;
 
+            let template;
             // Lấy template dựa vào templateName
             switch (templateName) {
                 case 'confirmation':
-                    template = await pluginStore.get({ key: 'email_confirmation' });
-                    break;
-                case 'reset-password':
-                    template = await pluginStore.get({ key: 'email_reset_password' });
+                    const emailSettings = await pluginStore.get({ key: 'email' });
+                    template = emailSettings['email_confirmation']
                     break;
                 default:
                     // Fallback template
@@ -87,13 +85,12 @@ export default ({ strapi }) => ({
                         `
                     };
             }
-
-            // Thay thế các placeholder trong template
             const processedTemplate = this.replaceTemplateVariables(template, variables);
-
             return {
                 subject: processedTemplate.subject,
                 html: processedTemplate.message,
+                from: processedTemplate.from,
+                replyTo: processedTemplate.replyTo,
                 text: this.htmlToText(processedTemplate.message)
             };
 
@@ -112,17 +109,18 @@ export default ({ strapi }) => ({
      * @returns {object} Processed template
      */
     replaceTemplateVariables(template, variables) {
-        let subject = template.subject || '';
-        let message = template.message || '';
-
+        let subject = template.options.subject || '';
+        let message = template.options.message || '';
+        const from = template.options?.from?.email || process.env.EMAIL_FROM;
+        const replyTo = template.options?.['response_email'] || process.env.EMAIL_REPLY_TO;
         // Thay thế các placeholder
         Object.keys(variables).forEach(key => {
-            const placeholder = new RegExp(`<%=\\s*${key}\\s*%>`, 'g');
+            const placeholder = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
             subject = subject.replace(placeholder, variables[key]);
             message = message.replace(placeholder, variables[key]);
         });
 
-        return { subject, message };
+        return { subject, message, from, replyTo };
     },
 
     /**

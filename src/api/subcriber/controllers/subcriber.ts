@@ -104,7 +104,7 @@ module.exports = factories.createCoreController('api::subcriber.subcriber', ({ s
                 subscriptionState: 'pending',
                 confirmationToken: token,
                 tokenExpiresAt: tokenExpiresAt.toISOString(),
-                subscribedAt: null,
+                subscribedAt: new Date().toISOString(),
                 confirmationAt: null,
                 unsubscribedAt: null,
             };
