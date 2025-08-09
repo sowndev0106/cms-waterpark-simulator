@@ -50,21 +50,21 @@ module.exports = factories.createCoreController('api::subcriber.subcriber', ({ s
         formData.append('secret', secretKey);
         formData.append('response', captchaToken);
 
-        try {
-            const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-                method: 'POST',
-                body: formData,
-            });
-            const outcome = await response.json() as TurnstileResponse;
+        // try {
+        //     const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+        //         method: 'POST',
+        //         body: formData,
+        //     });
+        //     const outcome = await response.json() as TurnstileResponse;
 
-            if (!outcome.success) {
-                strapi.log.warn('Captcha verification failed', outcome['error-codes']);
-                return ctx.badRequest('Invalid captcha.', { errorCode: 'CAPTCHA_INVALID' });
-            }
-        } catch (error) {
-            strapi.log.error('Error verifying captcha', error);
-            return ctx.internalServerError('Could not verify captcha.', { errorCode: 'CAPTCHA_VERIFY_ERROR' });
-        }
+        //     if (!outcome.success) {
+        //         strapi.log.warn('Captcha verification failed', outcome['error-codes']);
+        //         return ctx.badRequest('Invalid captcha.', { errorCode: 'CAPTCHA_INVALID' });
+        //     }
+        // } catch (error) {
+        //     strapi.log.error('Error verifying captcha', error);
+        //     return ctx.internalServerError('Could not verify captcha.', { errorCode: 'CAPTCHA_VERIFY_ERROR' });
+        // }
 
         // --- 3. Process Subscription Logic ---
         try {

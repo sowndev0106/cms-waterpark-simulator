@@ -26,7 +26,7 @@ export default ({ strapi }) => ({
                 UNSUBSCRIBE_URL: unsubscribeLink,
                 DAYS: process.env.CONFIRMATION_TOKEN_EXPIRES_DAYS || 7
             });
-
+            console.log(emailTemplate)
             const emailService = strapi.plugin('email')?.service?.('email') || strapi.service('plugin::email.email');
 
             if (!emailService) {
