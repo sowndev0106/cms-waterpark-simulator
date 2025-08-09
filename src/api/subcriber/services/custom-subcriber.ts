@@ -33,7 +33,6 @@ export default ({ strapi }) => ({
                 strapi.log.error('Email service not available. Make sure email plugin is installed and configured.');
                 return;
             }
-
             await emailService.send({
                 to: email,
                 from: process.env.EMAIL_FROM,
@@ -109,7 +108,8 @@ export default ({ strapi }) => ({
      * @returns {object} Processed template
      */
     replaceTemplateVariables(template, variables) {
-        let subject = template.options.subject || '';
+        console.log('Replacing template variables:', template);
+        let subject = template.options.object || '';
         let message = template.options.message || '';
         const from = template.options?.from?.email || process.env.EMAIL_FROM;
         const replyTo = template.options?.['response_email'] || process.env.EMAIL_REPLY_TO;
